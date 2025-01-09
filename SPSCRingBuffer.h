@@ -35,11 +35,6 @@
 template<typename T>
 class SPSCRingBuffer {
 public:
-    struct Position {
-        alignas(CACHELINE_SIZE) std::atomic<size_t> head = {0};
-        alignas(CACHELINE_SIZE) std::atomic<size_t> tail = {0};
-    };
-
     explicit SPSCRingBuffer(const size_t capacity):
         storage(capacity) {
     }
@@ -75,14 +70,19 @@ public:
     }
 
 private:
+    struct Position {
+        CACHELINE_ALIGNED std::atomic<size_t> head = {0};
+        CACHELINE_ALIGNED std::atomic<size_t> tail = {0};
+    };
+
     constexpr size_t getNextPos(const size_t position) {
         return position + 1 == storage.size() ? 0 : position + 1;
     }
 
     std::vector<T> storage;
     Position position;
-    alignas(CACHELINE_SIZE) size_t localTailPos = 0;
-    alignas(CACHELINE_SIZE) size_t localHeadPos = 0;
+    CACHELINE_ALIGNED size_t localTailPos = 0;
+    CACHELINE_ALIGNED size_t localHeadPos = 0;
 };
 
 #endif //SPSCRINGBUFFER_H
