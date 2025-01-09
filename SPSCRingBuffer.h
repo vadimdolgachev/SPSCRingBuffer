@@ -33,7 +33,7 @@
 #define CACHELINE_ALIGNED __attribute__((aligned(CACHELINE_SIZE)))
 
 template<typename T>
-class SPSCRingBuffer {
+class SPSCRingBuffer final {
 public:
     explicit SPSCRingBuffer(const size_t capacity):
         storage(capacity) {
