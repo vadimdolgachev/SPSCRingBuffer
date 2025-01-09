@@ -40,9 +40,12 @@ public:
     }
 
     bool push(T value) {
+        // Uses memory_order_relaxed for loading since only push tail changes
         const size_t tailPos = position.tail.load(std::memory_order_relaxed);
 
+        // Uses local head position since there is no need to load actual position each time
         if (getNextPos(tailPos) == localHeadPos) {
+            // Load actual head position
             localHeadPos = position.head.load(std::memory_order_acquire);
             if (getNextPos(tailPos) == localHeadPos) {
                 return false;
@@ -70,6 +73,7 @@ public:
     }
 
 private:
+    // Eliminates cache coherency of CPU by using CACHELINE_ALIGNED
     struct Position {
         CACHELINE_ALIGNED std::atomic<size_t> head = {0};
         CACHELINE_ALIGNED std::atomic<size_t> tail = {0};
