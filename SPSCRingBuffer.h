@@ -48,7 +48,7 @@ public:
         }
     }
 
-    SPSCRingBufferStatus push(T value) {
+    SPSCRingBufferStatus push(T value) noexcept(std::is_nothrow_move_constructible_v<T>) {
         // Uses memory_order_relaxed for loading since only push tail changes
         const size_t tailPos = position.tail.load(std::memory_order_relaxed);
 
@@ -66,7 +66,7 @@ public:
         return SPSCRingBufferStatus::Success;
     }
 
-    SPSCRingBufferStatus pop(T &value) {
+    SPSCRingBufferStatus pop(T &value) noexcept(std::is_nothrow_move_constructible_v<T>) {
         const size_t headPos = position.head.load(std::memory_order_relaxed);
 
         if (headPos == localTailPos) {
