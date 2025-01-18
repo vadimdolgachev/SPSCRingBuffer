@@ -47,6 +47,10 @@ public:
             throw std::invalid_argument("Buffer capacity must be greater than 0");
         }
     }
+    SPSCRingBuffer(const SPSCRingBuffer &other) = delete;
+    SPSCRingBuffer &operator=(const SPSCRingBuffer &other) = delete;
+    SPSCRingBuffer(SPSCRingBuffer &&other) noexcept = default;
+    SPSCRingBuffer &operator=(SPSCRingBuffer &&other) noexcept = default;
 
     SPSCRingBufferStatus push(T value) noexcept(std::is_nothrow_move_constructible_v<T>) {
         // Uses memory_order_relaxed for loading since only push tail changes
