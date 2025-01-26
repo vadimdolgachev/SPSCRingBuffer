@@ -8,6 +8,7 @@
 #include <functional>
 #include <iostream>
 #include <numeric>
+#include <random>
 
 template<typename Unit = std::chrono::microseconds>
 class ExecutionTimer final {
@@ -82,10 +83,33 @@ private:
     mutable std::vector<typename Unit::rep> times;
 };
 
+bool bindThreadToCpu(const std::thread::native_handle_type nativeHandle, const size_t cpuId) {
+    if (const size_t maxCpu = std::thread::hardware_concurrency(); cpuId >= maxCpu) {
+        return false;
+    }
+#if defined(_WIN32) || defined(_WIN64)
+    DWORD_PTR mask = 1ULL << cpuId;
+    DWORD_PTR prev_mask = SetThreadAffinityMask(GetCurrentThread(), mask);
+    return (prev_mask != 0);
+#elif defined(__linux__)
+    cpu_set_t set;
+    CPU_ZERO(&set);
+    CPU_SET(cpuId, &set);
+    return pthread_setaffinity_np(nativeHandle, sizeof(set), &set) == 0;
+#else
+    #error "Unsupported operating system"
+    return false;
+#endif
+}
+
 int main() {
     ExecutionTimer<std::chrono::milliseconds> measurer(1000);
     constexpr int64_t opCount = 10'000'000;
-    measurer.measure([] {
+    std::mt19937 engine{std::random_device{}()};
+    std::uniform_int_distribution<size_t> dist(0, std::thread::hardware_concurrency() - 1);
+    const size_t producerCpuId = dist(engine);
+    const size_t consumerCpuId = (producerCpuId + 1) % std::thread::hardware_concurrency();
+    measurer.measure([producerCpuId, consumerCpuId] {
         constexpr int bufferCapacity = 4096;
         SPSCRingBuffer<int> ringBuffer(bufferCapacity);
         std::thread producer([&ringBuffer] {
@@ -105,7 +129,8 @@ int main() {
                 sum += value;
             }
         });
-
+        bindThreadToCpu(producer.native_handle(), producerCpuId);
+        bindThreadToCpu(consumer.native_handle(), consumerCpuId);
         producer.join();
         consumer.join();
 

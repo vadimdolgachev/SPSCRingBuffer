@@ -15,3 +15,9 @@ Median: 20 ms
 Mean: 20.21 ms
 Standard Deviation: 0.83 ms
 ```
+## Binding a thread to one of the cpu
+```
+Median: 16 ms
+Mean: 16.04 ms
+Standard Deviation: 0.28 ms
+```
